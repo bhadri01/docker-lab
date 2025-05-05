@@ -1,0 +1,13 @@
+{
+  "LOGIN_TITLE": "youngstorage labs login",
+  "LOGIN_BELOW": "<b>With great power, comes great responsibility.</b>",
+  "WELCOME": "Welcome to youngstorage labs",
+  "LOGIN_PASSWORD": "Check your lab's dashboard under Lab Information for the password. Happy Learning ❤️🙌",
+  "LOGIN_USING_ENV_PASSWORD": "Password was set from $PASSWORD.",
+  "LOGIN_USING_HASHED_PASSWORD": "Password was set from $HASHED_PASSWORD.",
+  "SUBMIT": "SUBMIT",
+  "PASSWORD_PLACEHOLDER": "PASSWORD",
+  "LOGIN_RATE_LIMIT": "Login rate limited!",
+  "MISS_PASSWORD": "Missing password",
+  "INCORRECT_PASSWORD": "Incorrect password. The password changes during every redeploy. If this keeps happenning, redeploy your lab and try again. "
+}
