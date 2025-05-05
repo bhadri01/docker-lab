@@ -1,14 +1,15 @@
-from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-import subprocess
 import json
+import asyncio
+from pathlib import Path
 import uvicorn
+
 
 app = FastAPI()
 
-# Mount templates and static
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -21,19 +22,40 @@ async def home(request: Request):
     names = list(data.keys())
     return templates.TemplateResponse("index.html", {"request": request, "names": names})
 
-@app.post("/trigger")
-async def trigger(name: str = Form(...)):
-    try:
-        # Run docker_build.py with the selected name
-        result = subprocess.run(
-            ["python3", "docker_build.py", name],
-            capture_output=True,
-            text=True,
-            check=True
+@app.get("/stream/{name}")
+async def stream(name: str):
+    async def event_generator():
+        # Step 1: Reset Docker config before running anything
+        docker_config_path = Path.home() / ".docker" / "config.json"
+        docker_config_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure ~/.docker folder exists
+
+        with open(docker_config_path, "w") as f:
+            json.dump({"auths": {}}, f)
+
+        yield f"data: 🔄 Docker config reset successfully.\n\n"
+
+        # Step 2: Start the docker_build.py subprocess
+        process = await asyncio.create_subprocess_exec(
+            "python3", "docker_build.py", name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
         )
-        return JSONResponse(content={"output": result.stdout})
-    except subprocess.CalledProcessError as e:
-        return JSONResponse(status_code=400, content={"error": e.stderr})
+
+        while True:
+            line = await process.stdout.readline()
+            if not line:
+                break
+            # Stream each line
+            yield f"data: {line.decode().strip()}\n\n"
+
+        # Wait for process end
+        await process.wait()
+
+        # Final message
+        yield f"data: --- ✅ Build Completed ---\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

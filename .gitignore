@@ -1,5 +1,6 @@
 .venv
 __pycache__
+.vscode
 
 wg0.conf
 wg0.json
