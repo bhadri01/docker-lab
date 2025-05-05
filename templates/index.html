@@ -5,104 +5,585 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Docker Build Live Console</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #0db7ed;
+            --secondary-color: #384d54;
+            --accent-color: #4caf50;
+            --terminal-bg: #1e1e1e;
+            --terminal-text: #00ff9d;
+            --terminal-cursor: #ffffff;
+            --body-bg: #121212;
+            --card-bg: #1e1e1e;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            --transition-speed: 0.2s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            padding: 1rem;
-            background: #f8f9fa;
+            font-family: 'Consolas', 'Courier New', monospace;
+            background: var(--body-bg);
             height: 100vh;
+            overflow: hidden;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
         }
 
-        .output-box {
-            white-space: pre-wrap;
-            background-color: #000;
-            color: #00ff00;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-            height: 68vh;
+        .container-fluid {
+            height: 100vh;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-header {
+            background: #2c3e50;
+            color: white;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #444;
+        }
+
+        .terminal-header .title {
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+        }
+
+        .terminal-header .title i {
+            margin-right: 8px;
+        }
+
+        .terminal-header .controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .control-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        .dot-red {
+            background-color: #ff5f56;
+        }
+
+        .dot-yellow {
+            background-color: #ffbd2e;
+        }
+
+        .dot-green {
+            background-color: #27c93f;
+        }
+
+        .terminal-body {
+            flex: 1;
+            background-color: var(--terminal-bg);
+            color: var(--terminal-text);
+            padding: 12px;
             overflow-y: auto;
-            font-family: monospace;
             font-size: 0.9rem;
+            line-height: 1.5;
+            position: relative;
+            display: flex;
+            flex-direction: column;
         }
 
+        .terminal-output {
+            flex: 1;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            padding-bottom: 40px;
+        }
+
+        .terminal-input-container {
+            display: flex;
+            align-items: center;
+            margin-top: 8px;
+            position: sticky;
+            bottom: 0;
+            background-color: var(--terminal-bg);
+            padding: 8px 0;
+        }
+
+        .terminal-prompt {
+            color: #ff5f56;
+            margin-right: 8px;
+        }
+
+        .terminal-input {
+            background: transparent;
+            border: none;
+            color: var(--terminal-text);
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.9rem;
+            flex: 1;
+            outline: none;
+        }
+
+        .typing-effect {
+            display: inline-block;
+            width: 100%;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background-color: var(--terminal-text);
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .user-controls {
+            display: block;
+            padding: 10px;
+            background-color: #2d2d2d;
+            border-top: 1px solid #444;
+        }
+
+        .user-controls select,
+        .user-controls button {
+            margin-bottom: 8px;
+        }
+
+        .btn {
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-weight: 500;
+            transition: background-color var(--transition-speed) ease;
+            margin-right: 5px;
+        }
+
+        .btn-success {
+            background: var(--accent-color);
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            border: none;
+        }
+
+        .btn-warning {
+            background: #ff9800;
+            border: none;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+        }
+
+        .form-select {
+            background-color: #2d2d2d;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+
+        .toggle-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        /* Responsive adjustments */
         @media (max-width: 768px) {
-            .output-box {
-                height: 65svh;
+            .terminal-body {
                 font-size: 0.8rem;
+            }
+
+            .terminal-input {
+                font-size: 0.8rem;
+            }
+
+            .btn {
+                padding: 4px 8px;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .terminal-header .title {
+                font-size: 0.9rem;
+            }
+
+            .control-dot {
+                width: 14px;
+                height: 14px;
+                font-size: 7px;
+            }
+
+            .terminal-body {
+                padding: 8px;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-12 col-md-8">
-                <h1 class="mb-4 text-center">🚀 Docker Build Live Console</h1>
+    <div class="container-fluid">
+        <div class="terminal-header">
+            <div class="title">
+                <i class="fab fa-docker"></i> Docker Build Live Console
+            </div>
+            <div class="controls">
+                <div class="control-dot dot-red" id="toggle-controls">
+                    <i class="fas fa-times"></i>
+                </div>
+                <div class="control-dot dot-yellow">
+                    <i class="fas fa-minus"></i>
+                </div>
+                <div class="control-dot dot-green">
+                    <i class="fas fa-expand"></i>
+                </div>
+            </div>
+        </div>
 
-                <form id="trigger-form" class="mb-3">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Select a User</label>
-                        <select id="name" name="name" class="form-select" required>
-                            {% for name in names %}
-                            <option value="{{ name }}">{{ name|capitalize }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-success btn-md">
-                            Start Live Build
+        <div class="user-controls" id="user-controls">
+            <div class="row">
+                <div class="col-md-6">
+                    <select id="name" name="name" class="form-select form-select-sm mb-2" required>
+                        <option value="" disabled selected>Select a user</option>
+                        {% for name in names %}
+                        <option value="{{ name }}" {% if name==selected_name %} selected {% endif %}>
+                            {{ name|capitalize }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex flex-wrap">
+                        <button type="button" id="start-build" class="btn btn-success btn-sm">
+                            <i class="fas fa-play"></i> Build
+                        </button>
+                        <button type="button" id="start-code-server" class="btn btn-primary btn-sm">
+                            <i class="fas fa-server"></i> Server
+                        </button>
+                        <button type="button" id="open-vscode" class="btn btn-warning btn-sm">
+                            <i class="fas fa-code"></i> VS Code
                         </button>
                     </div>
-                </form>
+                </div>
+            </div>
+        </div>
 
-                <div id="output" class="output-box"></div>
+        <div class="terminal-body">
+            <div id="output" class="terminal-output"></div>
+            <div class="terminal-input-container">
+                <span class="terminal-prompt">$</span>
+                <input type="text" id="terminal-input" class="terminal-input" placeholder="Type a command..."
+                    autocomplete="off">
             </div>
         </div>
     </div>
 
     <script>
-        const form = document.getElementById('trigger-form');
         const outputBox = document.getElementById('output');
-        const submitButton = form.querySelector('button[type="submit"]');
+        const terminalInput = document.getElementById('terminal-input');
+        const userControls = document.getElementById('user-controls');
+        const toggleControls = document.getElementById('toggle-controls');
+        const nameSelect = document.getElementById('name');
+        const startBuildBtn = document.getElementById('start-build');
+        const codeServerButton = document.getElementById('start-code-server');
+        const openVSCodeButton = document.getElementById('open-vscode');
         let eventSource;
+        let commandHistory = [];
+        let historyIndex = -1;
 
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
+        // Inject user_ips data from server
+        const userIps = JSON.parse('{{ user_ips|tojson }}');
 
-            outputBox.innerText = "";
+        // Toggle controls visibility
+        toggleControls.addEventListener('click', () => {
+            userControls.style.display = userControls.style.display === 'none' ? 'block' : 'none';
+        });
 
-            const name = document.getElementById('name').value;
+        // Improved typing effect function that ensures each line is properly displayed
+        function typeText(element, text, speed = 5, callback = null) {
+            // Clean the text to ensure proper line breaks
+            const cleanedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-            // Close old event source if any
-            if (eventSource) {
-                eventSource.close();
+            // Create a new element for this text
+            const typingElement = document.createElement('div');
+            typingElement.className = 'typing-effect';
+            element.appendChild(typingElement);
+
+            let i = 0;
+
+            function typeChar() {
+                if (i < cleanedText.length) {
+                    typingElement.textContent += cleanedText.charAt(i);
+                    i++;
+                    element.scrollTop = element.scrollHeight;
+                    setTimeout(typeChar, speed);
+                } else {
+                    if (callback) callback();
+                }
             }
 
-            // Disable button and show loading text
-            submitButton.disabled = true;
-            submitButton.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Building...`;
+            typeChar();
+        }
 
-            eventSource = new EventSource(`/stream/${name}`);
+        function updateURLTag(name) {
+            const url = new URL(window.location);
+            url.searchParams.set('tag', name);
+            window.history.replaceState({}, '', url);
+        }
 
-            eventSource.onmessage = (event) => {
-                outputBox.innerText += event.data + "\n";
-                outputBox.scrollTop = outputBox.scrollHeight;
+        function addButtonLoadingState(button, loadingText) {
+            button.disabled = true;
+            const originalText = button.innerHTML;
+            button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${loadingText}`;
+            button.classList.add('disabled');
+            return originalText;
+        }
 
-                if (event.data.includes("Build Completed")) {
+        function removeButtonLoadingState(button, originalHTML) {
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+            button.classList.remove('disabled');
+        }
+
+        function startBuild() {
+            const name = nameSelect.value;
+            if (!name) {
+                typeText(outputBox, "⚠️ Error: Please select a user first!", 10);
+                return;
+            }
+
+            updateURLTag(name);
+
+            if (eventSource) eventSource.close();
+
+            const originalButtonHTML = addButtonLoadingState(startBuildBtn, 'Building...');
+
+            typeText(outputBox, `Starting build for user: ${name}...`, 10, () => {
+                eventSource = new EventSource(`/stream/${name}`);
+
+                eventSource.onmessage = (event) => {
+                    // Process each message as a separate line
+                    typeText(outputBox, event.data, 5);
+
+                    if (event.data.includes("Build Completed")) {
+                        eventSource.close();
+                        removeButtonLoadingState(startBuildBtn, originalButtonHTML);
+                    }
+                };
+
+                eventSource.onerror = (event) => {
+                    typeText(outputBox, "❌ Connection closed due to error.", 10);
                     eventSource.close();
-                    submitButton.disabled = false;
-                    submitButton.innerHTML = `Start Live Build`;
-                }
-            };
+                    removeButtonLoadingState(startBuildBtn, originalButtonHTML);
+                };
+            });
+        }
 
-            eventSource.onerror = (event) => {
-                outputBox.innerText += "\n❌ Connection closed due to error.\n";
-                eventSource.close();
-                submitButton.disabled = false;
-                submitButton.innerHTML = `Start Live Build`;
-            };
+        function startCodeServer() {
+            const name = nameSelect.value;
+            if (!name) {
+                typeText(outputBox, "⚠️ Error: Please select a user first!", 10);
+                return;
+            }
+
+            updateURLTag(name);
+
+            if (eventSource) eventSource.close();
+
+            const originalButtonHTML = addButtonLoadingState(codeServerButton, 'Starting...');
+
+            typeText(outputBox, `Starting code server for user: ${name}...`, 10, () => {
+                eventSource = new EventSource(`/code-server-stream/${name}`);
+
+                eventSource.onmessage = (event) => {
+                    typeText(outputBox, event.data, 5);
+
+                    if (event.data.includes("Code-Server Started Successfully") || event.data.includes("Failed to start")) {
+                        eventSource.close();
+                        removeButtonLoadingState(codeServerButton, originalButtonHTML);
+                    }
+                };
+
+                eventSource.onerror = (event) => {
+                    typeText(outputBox, "❌ Connection closed due to error.", 10);
+                    eventSource.close();
+                    removeButtonLoadingState(codeServerButton, originalButtonHTML);
+                };
+            });
+        }
+
+        function openVSCode() {
+            const name = nameSelect.value;
+            if (!name || !userIps[name]) {
+                typeText(outputBox, "⚠️ Error: Please select a valid user first!", 10);
+                return;
+            }
+
+            updateURLTag(name);
+            const ip = userIps[name];
+            const vscodeUrl = `vscode://vscode-remote/ssh-remote+${name}@${ip}/home/${name}`;
+
+            typeText(outputBox, `Opening VS Code for user: ${name}...`, 10, () => {
+                window.location.href = vscodeUrl;
+            });
+        }
+
+        function showHelp() {
+            const helpText = `Available commands:
+  help                 - Show this help message
+  user list            - Show all available users
+  select <username>    - Select a user
+  deploy               - Start the build process
+  code .               - Open in VS Code
+  server               - Start the code server
+  clear                - Clear the terminal`;
+            typeText(outputBox, helpText, 5);
+        }
+
+        function showUserList() {
+            let userListText = "Available users:";
+            const options = nameSelect.options;
+            for (let i = 1; i < options.length; i++) {
+                userListText += `\n  ${options[i].value}`;
+            }
+            typeText(outputBox, userListText, 5);
+        }
+
+        function selectUser(username) {
+            const options = nameSelect.options;
+            let found = false;
+
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].value.toLowerCase() === username.toLowerCase()) {
+                    nameSelect.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found) {
+                typeText(outputBox, `User '${username}' selected.`, 10);
+            } else {
+                typeText(outputBox, `Error: User '${username}' not found.`, 10);
+            }
+        }
+
+        function clearTerminal() {
+            outputBox.innerHTML = '';
+            typeText(outputBox, "Terminal cleared.", 10);
+        }
+
+        function processCommand(command) {
+            // Add command to history
+            commandHistory.push(command);
+            historyIndex = commandHistory.length;
+
+            typeText(outputBox, `$ ${command}`, 5, () => {
+                const cmd = command.trim().toLowerCase();
+
+                if (cmd === 'help') {
+                    showHelp();
+                } else if (cmd === 'user list') {
+                    showUserList();
+                } else if (cmd.startsWith('select ')) {
+                    const username = cmd.substring(7).trim();
+                    selectUser(username);
+                } else if (cmd === 'deploy') {
+                    startBuild();
+                } else if (cmd === 'code .') {
+                    openVSCode();
+                } else if (cmd === 'server') {
+                    startCodeServer();
+                } else if (cmd === 'clear') {
+                    clearTerminal();
+                } else {
+                    typeText(outputBox, `Command not found: ${command}. Type 'help' for available commands.`, 10);
+                }
+            });
+        }
+
+        // Command history navigation
+        terminalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const command = terminalInput.value;
+                terminalInput.value = '';
+
+                if (command.trim()) {
+                    processCommand(command);
+                }
+            } else if (e.key === 'ArrowUp') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    terminalInput.value = commandHistory[historyIndex];
+                    // Move cursor to end of input
+                    setTimeout(() => {
+                        terminalInput.selectionStart = terminalInput.selectionEnd = terminalInput.value.length;
+                    }, 0);
+                }
+                e.preventDefault();
+            } else if (e.key === 'ArrowDown') {
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    terminalInput.value = commandHistory[historyIndex];
+                } else if (historyIndex === commandHistory.length - 1) {
+                    historyIndex = commandHistory.length;
+                    terminalInput.value = '';
+                }
+                e.preventDefault();
+            }
+        });
+
+        startBuildBtn.addEventListener('click', startBuild);
+        codeServerButton.addEventListener('click', startCodeServer);
+        openVSCodeButton.addEventListener('click', openVSCode);
+
+        // Initialize terminal
+        document.addEventListener('DOMContentLoaded', () => {
+            typeText(outputBox, "🚀 Docker Build Live Console", 10, () => {
+                typeText(outputBox, "Type 'help' to see available commands.", 10);
+            });
+
+            // Focus on terminal input
+            setTimeout(() => {
+                terminalInput.focus();
+            }, 500);
         });
     </script>
 </body>
