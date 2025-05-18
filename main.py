@@ -73,6 +73,28 @@ async def stream(name: str):
 
         await process.wait()
         yield f"data: --- ✅ Build Completed ---\n\n"
+        print(f"Build process for {name} completed with exit code {process.returncode}")
+        process_logs = await asyncio.create_subprocess_exec(
+            "docker", "logs", "-f", name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+
+        try:
+            while True:
+                print("Waiting for logs...")
+                line = await process_logs.stdout.readline()
+                print(f"Log line: {line}")
+                if not line:
+                    break
+                decoded_line = line.decode().strip()
+                yield f"data: {decoded_line}\n\n"
+                if "Setup is completed" in decoded_line:
+                    yield f"data: --- ✅ Setup is completed ---\n\n"
+                    break
+        finally:
+            process_logs.kill()
+            await process_logs.wait()
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -116,4 +138,4 @@ async def code_server_stream(name: str):
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000)

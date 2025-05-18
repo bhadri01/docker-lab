@@ -408,7 +408,7 @@
                     // Process each message as a separate line
                     typeText(outputBox, event.data, 5);
 
-                    if (event.data.includes("Build Completed")) {
+                    if (event.data.includes("Setup is completed")) {
                         eventSource.close();
                         removeButtonLoadingState(startBuildBtn, originalButtonHTML);
                     }
