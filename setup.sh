@@ -6,30 +6,30 @@ if [ -z "$USERNAME" ]; then
   exit 1
 fi
 
-# Create /run/sshd directory
-mkdir -p /run/sshd && chmod 0755 /run/sshd
+# Remove *-merged folders
+find / -maxdepth 1 -type d -name '*-merged' -exec rm -rf {} +
 
-# # Stop and disable ssh.socket to avoid conflicts
-# systemctl stop ssh.socket
-# systemctl disable ssh.socket
+# Mask getty services to avoid console login prompt
+systemctl mask getty@tty1.service getty-static.service
 
-# Start the SSH service
-if systemctl start ssh; then
-  echo "[*] SSH service started successfully."
-else
-  echo "[*] Failed to start SSH service. Exiting."
-fi
-
-# Start and enable WireGuard
+# Start and enable wireguard
 if wg-quick up wg0; then
   echo "[*] WireGuard interface wg0 started successfully."
 else
   echo "[*] Failed to start WireGuard interface wg0. Exiting."
 fi
 
-chmod 775 /home/${USERNAME}
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+iptables -A FORWARD -p tcp -i wg0 --dst 10.5.0.0/16
 
-# Code-server configuration
+if service ssh start; then
+  echo "[*] SSH service started successfully."
+else
+  echo "[*] Failed to start SSH service. Exiting."
+fi
+
+chmod 775 /home/${USERNAME}
+# code-server configuration
 if [ ! -d "/home/$USERNAME/.config/code-server" ]; then
   mkdir -p /home/$USERNAME/.config/code-server
   cd /home/$USERNAME/.config/code-server
@@ -42,8 +42,11 @@ else
   echo "[*] /home/$USERNAME/.config/code-server already exists. Skipping creation."
 fi
 
-# Add user to docker group
+
+# Add '${USERNAME}' to the 'docker' group
+groupadd docker > /dev/null 2>&1
 usermod -aG docker ${USERNAME}
+
 
 # Create initialization script directory and script
 mkdir -p /home/${USERNAME}/.init
@@ -53,9 +56,17 @@ chmod +x docker_init.sh
 chown -R ${USERNAME}:${USERNAME} docker_init.sh
 
 # Run docker_init.sh if it exists
-if [ -f ./docker_init.sh ]; then
-    ./docker_init.sh
-fi
 
+
+dockerd --host=unix:///var/run/docker.sock &> /var/log/dockerd.log &
+
+echo "Waiting for Docker daemon to be ready…"
+
+sleep 2
+
+if [ -f ./docker_init.sh ]; then
+  # replace 'appuser' with your target username
+  su ${USERNAME} -c "bash -l -c './docker_init.sh'"
+fi
 echo "Setup is completed"
-exec /sbin/init --log-level=err
+tail -f /dev/null

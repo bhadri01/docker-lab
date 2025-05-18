@@ -76,11 +76,12 @@ RUN apt-get update && \
     curl -fsSL https://code-server.dev/install.sh | sh && \
     \
     # Install Docker
-    curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh 
+    curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
+RUN userdel ubuntu && rm -rf /home/ubuntu
 COPY setup.sh /
 COPY en.json /usr/lib/code-server/out/node/i18n/locales/en.json
 RUN chmod +x setup.sh
 # Remove unnecessary directories
-RUN rm -rf /bin.usr-is-merged /sbin.usr-is-merged
+RUN rm -rf /bin.usr-is-merged /sbin.usr-is-merged /.dockerenv /get-docker.sh
 
 

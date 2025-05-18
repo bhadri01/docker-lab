@@ -19,4 +19,3 @@ COPY wg0.conf /etc/wireguard/
 # Set systemd as entrypoint
 CMD ["/setup.sh"]
 
-#./docker-build --name hari --instance docker --no-cache
