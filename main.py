@@ -51,13 +51,13 @@ async def home(request: Request, tag: str = None):
 @app.get("/stream/{name}")
 async def stream(name: str):
     async def event_generator():
-        docker_config_path = Path.home() / ".docker" / "config.json"
-        docker_config_path.parent.mkdir(parents=True, exist_ok=True)
+        # docker_config_path = Path.home() / ".docker" / "config.json"
+        # docker_config_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(docker_config_path, "w") as f:
-            json.dump({"auths": {}}, f)
+        # with open(docker_config_path, "w") as f:
+        #     json.dump({"auths": {}}, f)
 
-        yield f"data: 🔄 Docker config reset successfully.\n\n"
+        # yield f"data: 🔄 Docker config reset successfully.\n\n"
 
         process = await asyncio.create_subprocess_exec(
             "python3", "docker_build.py", name,
