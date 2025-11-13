@@ -27,7 +27,10 @@ RUN apt-get update && \
         ca-certificates \
         dbus \
         iptables \
-        htop\
+        htop \
+        make \
+        inetutils-ping \
+        nano
         iproute2 \
         kmod \
         locales \
@@ -73,7 +76,6 @@ RUN apt-get update && \
     echo 'root:admin' | chpasswd && \
     echo "figlet -t -c youngstorage | lolcat" >> /etc/bash.bashrc && \
     echo "echo ''" >> /etc/bash.bashrc && \
-    curl -fsSL https://code-server.dev/install.sh | sh && \
     \
     # Install Docker
     curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
