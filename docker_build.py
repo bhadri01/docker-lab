@@ -5,6 +5,8 @@ from pathlib import Path
 
 app = typer.Typer()
 
+
+
 def remove_containers(client, status):
     containers = client.containers.list(all=True, filters={"status": status})
     for c in containers:
@@ -55,6 +57,23 @@ def build(
     volume_name    = f"{username}_data"
     hostname       = "youngstorageultra"
     network_name   = "dind"
+
+    # Ensure the network exists (use a temporary client so the main client can still be created later)
+    tmp_client = docker.from_env()
+    try:
+        existing = tmp_client.networks.list(names=[network_name])
+        if not existing:
+            typer.secho(f"➕ Creating network '{network_name}'", fg="yellow")
+            tmp_client.networks.create(name=network_name)
+        else:
+            typer.secho(f"🔎 Network '{network_name}' already exists", fg="blue")
+    except docker.errors.APIError as e:
+        typer.secho(f"⚠️  Could not ensure network '{network_name}': {e}", fg="red")
+    finally:
+        try:
+            tmp_client.close()
+        except Exception:
+            pass
 
     client = docker.from_env()
 
